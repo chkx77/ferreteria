@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useFirestore } from '../hooks/useFirestore'
-import { useToast } from '../hooks/useToast'
+import { useToast } from './UI'
 import { Modal, Spinner, Empty, SearchBox, Badge, useConfirm } from './UI'
 import { fmt, fmtInt, fmtDate, newNum } from '../lib/utils'
 import { serverTimestamp, Timestamp } from 'firebase/firestore'

@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useFirestore } from '../hooks/useFirestore'
-import { useToast } from '../hooks/useToast'
+import { useToast } from './UI'
 import { Modal, Spinner, Empty, SearchBox } from './UI'
 import { fmt, fmtInt, fmtDate } from '../lib/utils'
 import { imprimirFactura } from '../lib/print'

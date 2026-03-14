@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { initFirebase } from '../lib/firebase'
-import { useToast } from '../hooks/useToast'
+import { useToast } from './UI'
 
 export default function Config({ onConnected }) {
   const toast = useToast()

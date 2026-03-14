@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react'
 import { useFirestore } from '../hooks/useFirestore'
-import { useToast } from '../hooks/useToast'
+import { useToast } from './UI'
 import { Modal, Input, Select, Field, Spinner, Empty, SearchBox, useConfirm } from './UI'
 import { CATS, COND_PAGO } from '../lib/utils'
 

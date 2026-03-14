@@ -20,3 +20,5 @@ export const CATS = [
 
 export const UNIDADES = ['unidad', 'metro', 'kg', 'litro', 'par', 'caja', 'rollo', 'bolsa']
 export const COND_PAGO = ['Contado', '15 días', '30 días', '60 días', '90 días', 'A convenir']
+
+export const SUCURSALES = ['Casa Central', 'Sucursal Norte', 'Sucursal Sur', 'Depósito']

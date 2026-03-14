@@ -1,6 +1,30 @@
-import { useState } from 'react'
+import { useState, createContext, useContext, useCallback } from 'react'
 
-// ── MODAL ──────────────────────────────────────
+// ── Toast context ────────────────────────────────────────
+const ToastCtx = createContext(null)
+
+export function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([])
+  const toast = useCallback((msg, dur = 3000) => {
+    const id = Date.now()
+    setToasts(t => [...t, { id, msg }])
+    setTimeout(() => setToasts(t => t.filter(x => x.id !== id)), dur)
+  }, [])
+  return (
+    <ToastCtx.Provider value={toast}>
+      {children}
+      {toasts.map(t => (
+        <div key={t.id} className="toast">
+          <span className="t-dot" />
+          {t.msg}
+        </div>
+      ))}
+    </ToastCtx.Provider>
+  )
+}
+export const useToast = () => useContext(ToastCtx)
+
+// ── Modal ────────────────────────────────────────────────
 export function Modal({ title, wide, onClose, children, footer }) {
   return (
     <div className="modal-backdrop" onClick={e => e.target.classList.contains('modal-backdrop') && onClose()}>
@@ -13,23 +37,14 @@ export function Modal({ title, wide, onClose, children, footer }) {
   )
 }
 
-// ── FORM FIELD ────────────────────────────────
+// ── Field / Input / Select ───────────────────────────────
 export function Field({ label, children }) {
-  return (
-    <div className="form-group">
-      <label>{label}</label>
-      {children}
-    </div>
-  )
+  return <div className="form-group"><label>{label}</label>{children}</div>
 }
-
-// ── INPUT ─────────────────────────────────────
 export function Input({ label, ...props }) {
   if (!label) return <input {...props} />
   return <Field label={label}><input {...props} /></Field>
 }
-
-// ── SELECT ────────────────────────────────────
 export function Select({ label, options, ...props }) {
   const el = (
     <select {...props}>
@@ -40,11 +55,10 @@ export function Select({ label, options, ...props }) {
       )}
     </select>
   )
-  if (!label) return el
-  return <Field label={label}>{el}</Field>
+  return label ? <Field label={label}>{el}</Field> : el
 }
 
-// ── STAT CARD ─────────────────────────────────
+// ── StatCard ─────────────────────────────────────────────
 export function StatCard({ label, value, sub, trend, color }) {
   return (
     <div className="stat-card">
@@ -56,22 +70,25 @@ export function StatCard({ label, value, sub, trend, color }) {
   )
 }
 
-// ── BADGE ─────────────────────────────────────
+// ── Badge ────────────────────────────────────────────────
 export function Badge({ variant = 'ok', children }) {
   return <span className={`badge badge-${variant}`}>{children}</span>
 }
 
-// ── SPINNER ───────────────────────────────────
+// ── Spinner / Empty ──────────────────────────────────────
 export function Spinner() {
-  return <div className="empty"><div className="spinner" /><div style={{ marginTop: 12 }}>Cargando…</div></div>
+  return (
+    <div className="empty">
+      <div className="spinner" />
+      <div style={{ marginTop: 10, color: 'var(--muted)', fontFamily: 'var(--mono)', fontSize: 11 }}>Cargando…</div>
+    </div>
+  )
 }
-
-// ── EMPTY STATE ───────────────────────────────
 export function Empty({ msg = 'Sin resultados' }) {
   return <div className="empty">{msg}</div>
 }
 
-// ── SEARCH BOX ────────────────────────────────
+// ── SearchBox ────────────────────────────────────────────
 export function SearchBox({ value, onChange, placeholder = 'Buscar…' }) {
   return (
     <div className="search-box">
@@ -84,14 +101,14 @@ export function SearchBox({ value, onChange, placeholder = 'Buscar…' }) {
   )
 }
 
-// ── CONFIRM DIALOG (inline) ───────────────────
+// ── useConfirm ───────────────────────────────────────────
 export function useConfirm() {
   const [state, setState] = useState(null)
-  const confirm = (msg) => new Promise(resolve => setState({ msg, resolve }))
+  const confirm = msg => new Promise(resolve => setState({ msg, resolve }))
   const dialog = state ? (
     <div className="modal-backdrop" onClick={() => { state.resolve(false); setState(null) }}>
-      <div className="modal" style={{ width: 360 }} onClick={e => e.stopPropagation()}>
-        <p style={{ marginBottom: 20, lineHeight: 1.6 }}>{state.msg}</p>
+      <div className="modal" style={{ width: 380 }} onClick={e => e.stopPropagation()}>
+        <p>{state.msg}</p>
         <div className="modal-footer">
           <button className="btn btn-ghost" onClick={() => { state.resolve(false); setState(null) }}>Cancelar</button>
           <button className="btn btn-danger" onClick={() => { state.resolve(true); setState(null) }}>Confirmar</button>
