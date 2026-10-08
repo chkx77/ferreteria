@@ -1,0 +1,24 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function enabledMember() {
+      return request.auth != null
+        && exists(/databases/$(database)/documents/access/$(request.auth.uid))
+        && get(/databases/$(database)/documents/access/$(request.auth.uid)).data.enabled == true;
+    }
+    match /access/{uid} {
+      allow get: if request.auth != null && request.auth.uid == uid;
+      allow list, write: if false;
+    }
+    match /inventario/{id} {
+      allow read, delete: if enabledMember();
+      allow create, update: if enabledMember()
+        && request.resource.data.nombre is string
+        && request.resource.data.stock is number && request.resource.data.stock >= 0
+        && request.resource.data.precio_venta is number && request.resource.data.precio_venta >= 0;
+    }
+    match /{collection}/{id} {
+      allow read, write: if enabledMember() && collection in ['proveedores', 'facturas', 'compras'];
+    }
+  }
+}

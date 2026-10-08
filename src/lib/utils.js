@@ -11,7 +11,7 @@ export const fmtDate = (ts, long = false) => {
   return d.toLocaleDateString('es-AR')
 }
 
-export const newNum = (prefix) => `${prefix}-${String(Date.now()).slice(-7)}`
+export const newNum = (prefix) => `${prefix}-${crypto.randomUUID()}`
 
 export const CATS = [
   'Herramientas manuales', 'Herramientas eléctricas', 'Fijaciones',
