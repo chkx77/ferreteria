@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { initFirebase } from './lib/firebase'
 import { ToastProvider } from './components/UI'
+import AuthGate from './components/AuthGate'
 import Sidebar from './components/Sidebar'
 import Dashboard from './components/Dashboard'
 import Inventario from './components/Inventario'
@@ -17,14 +18,16 @@ function AppContent() {
   const [sucursal, setSucursal] = useState(() => localStorage.getItem('sucursal') || 'Casa Central')
 
   useEffect(() => {
+    let active = true
     const saved = localStorage.getItem('fb_config')
     if (saved) {
-      try { initFirebase(JSON.parse(saved)); setConnected(true); setPage('dashboard') }
+      try { initFirebase(JSON.parse(saved)).then(() => { if (active) { setConnected(true); setPage('dashboard') } }).catch(() => { if (active) setPage('config') }) }
       catch { setPage('config') }
     }
+    return () => { active = false }
   }, [])
 
-  function navigate(p) { setPage(p) }
+  function navigate(p) { if (connected || p === 'config') setPage(p) }
 
   function handleConnected(ok = true) {
     setConnected(ok)
@@ -56,7 +59,7 @@ function AppContent() {
         sucursal={sucursal}
         onSucursal={handleSucursal}
       />
-      <main>{pages[page] || pages.dashboard}</main>
+      <main>{page === 'config' || !connected ? pages.config : <AuthGate>{pages[page] || pages.dashboard}</AuthGate>}</main>
     </div>
   )
 }

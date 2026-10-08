@@ -1,86 +1,50 @@
 # Ferretería PRO
 
-Sistema de gestión para ferretería — React + Vite + Firebase Firestore.
+Aplicación web de gestión de inventario, ventas, compras y proveedores. Incluye gráficos, importación/exportación XLSX y comprobantes imprimibles. No integra facturación fiscal.
 
-## Stack
-- React 18 + Vite
-- Firebase Firestore (base de datos)
-- Chart.js (dashboard)
-- XLSX (exportación Excel)
-- Sin backend propio — todo corre en el browser
+## Tecnologías
+React 18, JavaScript, Vite, Firebase Authentication y Firestore, Chart.js, react-chartjs-2 y XLSX.
 
-## Módulos
-- **Dashboard** — ventas del mes, gráfico 14 días, top productos, alertas de stock
-- **Nueva Factura** — scanner de código de barras, selector manual, descuento, IVA 21%, impresión
-- **Historial** — facturas con filtro, vista detalle, impresión, export Excel
-- **Inventario** — ABM completo, margen por producto, export Excel
-- **Compras** — órdenes a proveedores, recepción actualiza stock automáticamente
-- **Proveedores** — ABM con condición de pago y contacto
+## Estado
+Actualización con acceso por usuario habilitado, validación de stock y transacciones. La activación en una instalación existente requiere aplicar las reglas y habilitar cuentas. No es un sistema multiempresa: las cuentas habilitadas comparten el mismo comercio.
 
-## Desarrollo local
+## Instalación
+Requiere Node.js 22 y npm.
 
-```bash
+```sh
 npm install
+npm test
 npm run dev
+npm run build
 ```
 
-Abre http://localhost:5173 — configurá Firebase desde la pantalla "Firebase Config".
+## Configurar Firebase
+1. Crear un proyecto de demostración y activar Firestore y Authentication con email/contraseña.
+2. Copiar la configuración web en la pantalla de configuración de la aplicación. No ingresar claves de servicio del servidor.
+3. Crear las cuentas desde la consola de Authentication.
+4. En Firestore crear un documento `access/{UID}` por cuenta autorizada, con `enabled: true`. La aplicación no permite que un usuario se autorice a sí mismo.
+5. Publicar las reglas de `firestore.rules`, luego ingresar con una cuenta habilitada.
 
-## Deploy en Vercel
+## Diseño
+`src/components`: pantallas y componentes compartidos. `src/hooks/useFirestore.js`: acceso a datos. `src/lib`: Firebase, cálculos, formato e impresión.
 
-1. Subí esta carpeta a un repositorio GitHub
-2. En vercel.com → New Project → importá el repo
-3. Vercel detecta Vite automáticamente → Deploy
+Las ventas leen existencias y guardan venta y stock en una transacción. El identificador de venta evita registrar dos veces el mismo comprobante. La recepción de compras verifica el estado pendiente y actualiza stock junto con la orden.
 
-## Firebase
+## Límites y próximos pasos
+- El filtro por sucursal no equivale a permisos separados ni inventarios separados.
+- Los miembros habilitados son operadores de confianza del comercio y pueden editar datos. Para controles estrictos de negocio, mover ventas al servidor.
+- Revisar la paginación: algunas consultas están limitadas a 200 registros.
+- Agregar auditoría y probar impresión, lectores y XLSX con dispositivos reales.
+- Antes de reemplazar reglas de una base existente, respaldarla y verificar cuentas e importaciones.
 
-1. Creá un proyecto en console.firebase.google.com
-2. Activá Firestore Database
-3. Configurá las reglas (modo desarrollo):
+## Soporte
+`permission-denied`: revisar Authentication, UID, documento access y reglas. Un fallo de red no significa que el usuario esté habilitado. Si una venta falla, consultar el historial antes de repetirla.
 
-```
-rules_version = '2';
-service cloud.firestore {
-  match /databases/{database}/documents {
-    match /{document=**} {
-      allow read, write: if true;
-    }
-  }
-}
-```
+## Presentación profesional
+Proyecto personal o académico de Matías Romero. El código y la documentación describen su alcance; no se atribuyen clientes, métricas ni experiencia de producción no verificados.
 
-4. Desde la app, en **Firebase Config**, pegá las credenciales de tu proyecto
+## Comprobaciones
+El workflow de GitHub Actions instala dependencias y compila el proyecto. El resultado del workflow, y no la existencia de este apartado, determina si la verificación pasó.
 
-## Scanner de código de barras
-
-Los lectores USB/Bluetooth envían el código seguido de Enter.
-El sistema los detecta automáticamente en la pantalla de ventas.
-También podés escribir el código manualmente en el campo de scanner.
-
-Para que funcione, los productos deben tener el campo **Código** cargado en Inventario.
-
-## Estructura
-
-```
-src/
-  components/
-    App.jsx          — router principal
-    Sidebar.jsx
-    Dashboard.jsx
-    Ventas.jsx       — facturación + scanner
-    Historial.jsx
-    Inventario.jsx
-    Compras.jsx
-    Proveedores.jsx
-    Config.jsx
-    UI.jsx           — componentes reutilizables
-  hooks/
-    useFirestore.js  — todas las operaciones de DB
-    useToast.jsx     — sistema de notificaciones
-  lib/
-    firebase.js      — inicialización
-    utils.js         — formateo, constantes
-    print.js         — impresión de facturas
-  index.css          — estilos globales
-  main.jsx
-```
+## Datos para demostraciones
+Usar datos ficticios. No subir bases de datos, contraseñas, claves de servicio ni exportaciones con datos personales.

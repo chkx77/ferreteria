@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from 'react'
 import { useFirestore } from '../hooks/useFirestore'
 import { useToast } from '../hooks/useToast'
 import { fmt, newNum } from '../lib/utils'
+import { saleTotals } from '../lib/sales'
 import { imprimirFactura } from '../lib/print'
 
 function useBarcodeScanner(onCode) {
@@ -62,6 +63,9 @@ export default function Ventas({ onNavigate, sucursal }) {
   const [inventario, setInventario] = useState([])
   const [clientesHist, setClientesHist] = useState([])
   const [items, setItems] = useState([])
+  const [discount, setDiscount] = useState(0)
+  const [saving, setSaving] = useState(false)
+  const saleLock = useRef(false)
   const [scanFlash, setScanFlash] = useState('')
   const [flashRows, setFlashRows] = useState({})
   const [nro] = useState(() => newNum('F'))
@@ -82,7 +86,7 @@ export default function Ventas({ onNavigate, sucursal }) {
     if (!prod) { setScanFlash('err'); setTimeout(() => setScanFlash(''), 700); toast(`Código "${codigo}" no encontrado`); return }
     setItems(prev => {
       const ex = prev.find(i => i.id === prod.id)
-      if (ex && ex.cantidad >= (prod.stock || 0)) { toast(`Stock insuficiente de "${prod.nombre}"`); return prev }
+      if ((ex?.cantidad || 0) + 1 > (prod.stock || 0)) { toast(`Stock insuficiente de "${prod.nombre}"`); return prev }
       setScanFlash('ok'); setTimeout(() => setScanFlash(''), 700)
       setFlashRows(r => ({ ...r, [prod.id]: Date.now() }))
       if (ex) return prev.map(i => i.id === prod.id ? { ...i, cantidad: i.cantidad + 1, total: (i.cantidad + 1) * i.precio } : i)
@@ -104,26 +108,22 @@ export default function Ventas({ onNavigate, sucursal }) {
     }, []))
   }
 
-  const subtotal = items.reduce((s, i) => s + i.total, 0)
-  const getDesc  = () => +(document.getElementById('desc-input')?.value || 0)
-  const descAmt  = subtotal * (getDesc() / 100)
-  const base     = subtotal - descAmt
-  const iva      = base * 0.21
-  const total    = base + iva
+  const { subtotal, descuento: descAmt, iva, total } = saleTotals(items, discount)
 
   async function confirmar() {
-    if (!items.length) return
-    const desc = getDesc()
-    const dAmt = subtotal * (desc / 100)
-    const b = subtotal - dAmt, iv = b * 0.21, tot = b + iv
+    if (!items.length || saleLock.current) return
+    saleLock.current = true
+    setSaving(true)
+    const totals = saleTotals(items, discount)
     const cliente = { nombre: document.getElementById('cli-nom')?.value || '', dni: document.getElementById('cli-dni')?.value || '' }
-    const factura = { numero: nro, cliente, items, subtotal, descuento: dAmt, iva: iv, total: tot, sucursal }
+    const factura = { numero: nro, cliente, items, ...totals, descuentoPorcentaje: discount, sucursal }
     try {
       await confirmarVentaDB(factura, items)
       toast(`Venta confirmada · ${nro} ✓`)
       imprimirFactura({ ...factura, fecha: { toDate: () => new Date() } })
       onNavigate('historial')
     } catch (e) { toast('Error: ' + e.message) }
+    finally { saleLock.current = false; setSaving(false) }
   }
 
   // Selector manual
@@ -132,7 +132,8 @@ export default function Ventas({ onNavigate, sucursal }) {
   function agregarSelector() {
     const prod = inventario.find(p => p.id === selProd)
     if (!prod) { toast('Seleccioná un producto'); return }
-    const precio = +selPrecio || prod.precio_venta || 0
+    if (!Number.isFinite(selQty) || selQty <= 0 || (selPrecio !== '' && (!Number.isFinite(+selPrecio) || +selPrecio < 0))) { toast('Cantidad o precio inválidos'); return }
+    const precio = selPrecio === '' ? prod.precio_venta || 0 : +selPrecio
     const ex = items.find(i => i.id === prod.id)
     if (selQty + (ex?.cantidad || 0) > (prod.stock || 0)) { toast(`Stock insuficiente`); return }
     setItems(prev => ex
@@ -148,7 +149,7 @@ export default function Ventas({ onNavigate, sucursal }) {
         <div><h1>Nueva Factura</h1><div className="sub">Nro. {nro} · {sucursal}</div></div>
         <div className="header-actions">
           <button className="btn btn-ghost btn-sm" onClick={() => { setItems([]) }}>Limpiar</button>
-          <button className="btn btn-primary btn-sm" disabled={!items.length} onClick={confirmar}>
+          <button className="btn btn-primary btn-sm" disabled={!items.length || saving} onClick={confirmar}>
             {items.length > 0 ? `Confirmar — $${fmt(total)}` : 'Confirmar'}
           </button>
         </div>
@@ -179,7 +180,7 @@ export default function Ventas({ onNavigate, sucursal }) {
             </div>
             <div className="form-group" style={{ marginBottom: 0 }}>
               <label>Descuento %</label>
-              <input id="desc-input" type="number" min="0" max="100" step="0.5" defaultValue={0} />
+              <input id="desc-input" value={discount} onChange={e => setDiscount(Math.max(0, Math.min(100, Number(e.target.value) || 0)))} type="number" min="0" max="100" step="0.5"  />
             </div>
           </div>
         </div>
